@@ -18,17 +18,6 @@ list_file_descriptors() {
     ls -l /proc/$pid/fd 2>/dev/null | awk '{print $9 " -> " $11}' || echo "Error: Unable to access file descriptors for PID $pid"
 }
 
-# Function to draw progress bar
-draw_progress_bar() {
-    local percent=$1
-    local width=50
-    local completed=$((percent * width / 100))
-    printf "\r["
-    printf "%0.s#" $(seq 1 $completed)
-    printf "%0.s-" $(seq 1 $((width - completed)))
-    printf "] %3d%%" $percent
-}
-
 # Check arguments
 if [ $# -eq 0 ]; then
     show_help
@@ -46,8 +35,9 @@ INTERVAL=${3:-1}
 # Function to check if process is still running
 check_process() {
     if ! kill -0 $PID 2>/dev/null; then
-        echo "Error: Process $PID has terminated."
-        exit 1
+        echo
+        echo "Process $PID has finished. End time: $(date '+%Y-%m-%d %H:%M:%S')"
+        exit 0
     fi
 }
 
@@ -65,9 +55,6 @@ if [ -z "$FILE_SIZE" ]; then
     exit 1
 fi
 
-# Convert file size to GB
-FILE_SIZE_GB=$(echo "scale=6; $FILE_SIZE / (1024 * 1024 * 1024)" | bc)
-
 # Initialize variables
 PREV_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD 2>/dev/null)
 if [ -z "$PREV_POS" ]; then
@@ -78,19 +65,24 @@ fi
 WEIGHTED_SPEED=0
 ALPHA=0.2  # Weight for the moving average
 
-# Hide the cursor
-tput civis
+# Function to format bytes to human-readable format
+format_bytes() {
+    local bytes=$1
+    local units=("B" "KB" "MB" "GB" "TB")
+    local unit=0
+    local value=$bytes
 
-# Print static parts of the output
-echo "Process ID: $PID"
-echo "File Descriptor: $FD"
-echo "File Size: $FILE_SIZE_GB GB"
-echo
-echo "Progress:"
-echo
-echo "Current Position:"
-echo "Distance from End:"
-echo "Estimated Time to Finish:"
+    while (( $(echo "$value > 1024" | bc -l) )); do
+        value=$(echo "scale=2; $value / 1024" | bc)
+        ((unit++))
+    done
+
+    printf "%.2f %s" $value "${units[$unit]}"
+}
+
+# Record start time
+START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+echo "Start time: $START_TIME"
 
 # Start the continuous loop
 while true
@@ -111,10 +103,6 @@ do
     # Calculate the current distance from the end of the file
     DISTANCE=$(( FILE_SIZE - CURRENT_POS ))
 
-    # Convert current position and distance to GB
-    CURRENT_POS_GB=$(echo "scale=6; $CURRENT_POS / (1024 * 1024 * 1024)" | bc)
-    DISTANCE_GB=$(echo "scale=6; $DISTANCE / (1024 * 1024 * 1024)" | bc)
-
     # Calculate the percentage complete
     PERCENT_COMPLETE=$(echo "scale=2; ($CURRENT_POS / $FILE_SIZE) * 100" | bc)
 
@@ -122,23 +110,24 @@ do
     CURRENT_SPEED=$((CHANGE / INTERVAL))
     WEIGHTED_SPEED=$(echo "scale=2; ($ALPHA * $CURRENT_SPEED) + ((1 - $ALPHA) * $WEIGHTED_SPEED)" | bc)
 
-    # Calculate the estimated time to finish in seconds and then convert to minutes
+    # Calculate the estimated time to finish in seconds
     if [[ $(echo "$WEIGHTED_SPEED > 0" | bc -l) -eq 1 ]]; then
-        TIME_TO_FINISH_SEC=$(echo "scale=2; $DISTANCE / $WEIGHTED_SPEED" | bc)
-        TIME_TO_FINISH_MIN=$(echo "scale=2; $TIME_TO_FINISH_SEC / 60" | bc)
+        TIME_TO_FINISH_SEC=$(echo "scale=0; $DISTANCE / $WEIGHTED_SPEED" | bc)
+        FORMATTED_TIME=$(date -u -d @${TIME_TO_FINISH_SEC} +"%H:%M:%S")
     else
-        TIME_TO_FINISH_MIN="Infinite (No Progress Detected)"
+        FORMATTED_TIME="--:--:--"
     fi
 
-    # Move cursor and update dynamic parts
-    tput cup 5 0
-    draw_progress_bar ${PERCENT_COMPLETE%.*}
-    tput cup 7 0
-    printf "\rCurrent Position: %9.6f GB" $CURRENT_POS_GB
-    tput cup 8 0
-    printf "\rDistance from End: %9.6f GB" $DISTANCE_GB
-    tput cup 9 0
-    printf "\rEstimated Time to Finish: %s minutes     " "$TIME_TO_FINISH_MIN"
+    # Format current position and total size
+    FORMATTED_POS=$(format_bytes $CURRENT_POS)
+    FORMATTED_SIZE=$(format_bytes $FILE_SIZE)
+
+    # Calculate transfer rate
+    TRANSFER_RATE=$(format_bytes $WEIGHTED_SPEED)
+
+    # Output the progress
+    printf "\r[%3.0f%%] %s / %s | %s/s | ETA: %s " \
+           $PERCENT_COMPLETE "$FORMATTED_POS" "$FORMATTED_SIZE" "$TRANSFER_RATE" "$FORMATTED_TIME"
 
     # Update the previous position
     PREV_POS=$CURRENT_POS
