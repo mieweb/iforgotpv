@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Usage: ./forecast_time.sh <pid> <fd> <interval>
+# Example: ./forecast_time.sh 1234 3 1
+
+# Variables
+PID=$1
+FD=$2
+INTERVAL=$3
+
+# Check if the required arguments are provided
+if [[ -z "$PID" || -z "$FD" || -z "$INTERVAL" ]]; then
+  echo "Usage: $0 <pid> <fd> <interval>"
+  exit 1
+fi
+
+# Resolve the symbolic link to get the actual file path
+FILE_PATH=$(readlink /proc/$PID/fd/$FD)
+
+# Get the total file size in bytes
+FILE_SIZE=$(stat -c %s "$FILE_PATH")
+
+# Convert file size to GB
+FILE_SIZE_GB=$(echo "scale=6; $FILE_SIZE / (1024 * 1024 * 1024)" | bc)
+
+# Initialize the previous position variable
+PREV_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD)
+
+# Start the continuous loop
+while true
+do
+  # Get the current position
+  CURRENT_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD)
+
+  # Calculate the change in position since the last check
+  CHANGE=$(( CURRENT_POS - PREV_POS ))
+
+  # Calculate the current distance from the end of the file
+  DISTANCE=$(( FILE_SIZE - CURRENT_POS ))
+
+  # Convert current position and distance to GB
+  CURRENT_POS_GB=$(echo "scale=6; $CURRENT_POS / (1024 * 1024 * 1024)" | bc)
+  DISTANCE_GB=$(echo "scale=6; $DISTANCE / (1024 * 1024 * 1024)" | bc)
+
+  # Calculate the percentage complete
+  PERCENT_COMPLETE=$(echo "scale=2; ($CURRENT_POS / $FILE_SIZE) * 100" | bc)
+
+  # Calculate the estimated time to finish in seconds and then convert to minutes
+  if [[ $CHANGE -gt 0 ]]; then
+    TIME_TO_FINISH_SEC=$(( DISTANCE / CHANGE * INTERVAL ))
+    TIME_TO_FINISH_MIN=$(echo "scale=2; $TIME_TO_FINISH_SEC / 60" | bc)
+  else
+    TIME_TO_FINISH_MIN="Infinite (No Progress Detected)"
+  fi
+
+  # Output the results
+  echo "Process ID: $PID"
+  echo "File Descriptor: $FD"
+  echo "Current Position: $CURRENT_POS_GB GB"
+  echo "File Size: $FILE_SIZE_GB GB"
+  echo "Distance from End: $DISTANCE_GB GB"
+  echo "Percentage Complete: $PERCENT_COMPLETE%"
+  echo "Estimated Time to Finish: $TIME_TO_FINISH_MIN minutes"
+  echo "-----------------------------"
+
+  # Update the previous position
+  PREV_POS=$CURRENT_POS
+
+  # Pause for the specified interval
+  sleep $INTERVAL
+done
+
