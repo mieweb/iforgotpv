@@ -15,7 +15,7 @@ show_help() {
 list_file_descriptors() {
     local pid=$1
     echo "File descriptors for PID $pid:"
-    ls -l /proc/$pid/fd | awk '{print $9 " -> " $11}'
+    ls -l /proc/$pid/fd 2>/dev/null | awk '{print $9 " -> " $11}' || echo "Error: Unable to access file descriptors for PID $pid"
 }
 
 # Function to draw progress bar
@@ -43,22 +43,42 @@ PID=$1
 FD=$2
 INTERVAL=${3:-1}
 
+# Function to check if process is still running
+check_process() {
+    if ! kill -0 $PID 2>/dev/null; then
+        echo "Error: Process $PID has terminated."
+        exit 1
+    fi
+}
+
 # Resolve the symbolic link to get the actual file path
-FILE_PATH=$(readlink /proc/$PID/fd/$FD)
+FILE_PATH=$(readlink /proc/$PID/fd/$FD 2>/dev/null)
+if [ -z "$FILE_PATH" ]; then
+    echo "Error: Unable to resolve file path for PID $PID and FD $FD"
+    exit 1
+fi
 
 # Get the total file size in bytes
-FILE_SIZE=$(stat -c %s "$FILE_PATH")
+FILE_SIZE=$(stat -c %s "$FILE_PATH" 2>/dev/null)
+if [ -z "$FILE_SIZE" ]; then
+    echo "Error: Unable to get file size for $FILE_PATH"
+    exit 1
+fi
 
 # Convert file size to GB
 FILE_SIZE_GB=$(echo "scale=6; $FILE_SIZE / (1024 * 1024 * 1024)" | bc)
 
 # Initialize variables
-PREV_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD)
+PREV_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD 2>/dev/null)
+if [ -z "$PREV_POS" ]; then
+    echo "Error: Unable to get initial position for PID $PID and FD $FD"
+    exit 1
+fi
+
 WEIGHTED_SPEED=0
 ALPHA=0.2  # Weight for the moving average
 
-# Clear the screen and hide the cursor
-clear
+# Hide the cursor
 tput civis
 
 # Print static parts of the output
@@ -75,8 +95,15 @@ echo "Estimated Time to Finish:"
 # Start the continuous loop
 while true
 do
+    # Check if the process is still running
+    check_process
+
     # Get the current position
-    CURRENT_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD)
+    CURRENT_POS=$(awk '/pos/ {print $2}' /proc/$PID/fdinfo/$FD 2>/dev/null)
+    if [ -z "$CURRENT_POS" ]; then
+        echo "Error: Unable to get current position for PID $PID and FD $FD"
+        exit 1
+    fi
 
     # Calculate the change in position since the last check
     CHANGE=$(( CURRENT_POS - PREV_POS ))
@@ -111,7 +138,7 @@ do
     tput cup 8 0
     printf "\rDistance from End: %9.6f GB" $DISTANCE_GB
     tput cup 9 0
-    printf "\rEstimated Time to Finish: %s minutes" $TIME_TO_FINISH_MIN
+    printf "\rEstimated Time to Finish: %s minutes     " "$TIME_TO_FINISH_MIN"
 
     # Update the previous position
     PREV_POS=$CURRENT_POS
