@@ -77,6 +77,14 @@ It also shows the start time when the script begins and the end time when the mo
 [MIT License](https://opensource.org/licenses/MIT)
 Credit: https://claude.ai/chat/a27ea613-ddf2-4d5e-9a72-3ca896e49f37
 
+## TODO
+
+### Use FPM to make packages
+
+fpm -s dir -t rpm -n iforgotpv -v 1.0 --prefix=/usr/local iforgotpv/usr/local/bin/iforgotpv
+fpm -s dir -t deb -n iforgotpv -v 1.0 --prefix=/usr/local iforgotpv/usr/local/bin/iforgotpv
+
+
 ## Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check [issues page](https://github.com/yourusername/iforgotpv/issues).
