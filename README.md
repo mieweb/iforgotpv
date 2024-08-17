@@ -75,6 +75,7 @@ It also shows the start time when the script begins and the end time when the mo
 ## License
 
 [MIT License](https://opensource.org/licenses/MIT)
+Credit: https://claude.ai/chat/a27ea613-ddf2-4d5e-9a72-3ca896e49f37
 
 ## Contributing
 
