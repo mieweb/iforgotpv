@@ -4,7 +4,7 @@ Did you forget to run pv on a long running command? iforgotpv to the rescue!
 
 ## Description
 
-\`iforgotpv\` is a bash script that allows you to monitor the progress of a running process that's reading from or writing to a file. It's particularly useful when you've started a long-running command and wish you had used \`pv\` (Pipe Viewer) to monitor its progress.
+`iforgotpv` is a bash script that allows you to monitor the progress of a running process that's reading from or writing to a file. It's particularly useful when you've started a long-running command and wish you had used \`pv\` (Pipe Viewer) to monitor its progress.
 
 ## Features
 
@@ -17,44 +17,44 @@ Did you forget to run pv on a long running command? iforgotpv to the rescue!
 
 ### For Debian-based systems (using apt):
 
-\```bash
+```bash
 sudo apt update
 sudo apt install iforgotpv
-\```
+```
 
 ### For Red Hat-based systems (using yum):
 
-\```bash
+```bash
 sudo yum update
 sudo yum install iforgotpv
-\```
+```
 
 ## Usage
 
-\```
+```
 iforgotpv <pid> [fd] [interval]
-\```
+```
 
-- \`pid\`: Process ID of the command you want to monitor
-- \`fd\`: File descriptor (optional, defaults to 1 for stdout)
-- \`interval\`: Update interval in seconds (optional, defaults to 1)
+- `pid`: Process ID of the command you want to monitor
+- `fd`: File descriptor (optional, defaults to 1 for stdout)
+- `interval`: Update interval in seconds (optional, defaults to 1)
 
 ### Examples
 
 1. Monitor a process with PID 1234, updating every second:
-   \```
+   ```
    iforgotpv 1234
-   \```
+   ```
 
 2. Monitor a process with PID 5678, file descriptor 3, updating every 5 seconds:
-   \```
+   ```
    iforgotpv 5678 3 5
-   \```
+   ```
 
 3. List file descriptors for a process:
-   \```
+   ```
    iforgotpv 1234
-   \```
+   ```
 
 ## Output
 
