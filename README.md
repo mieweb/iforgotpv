@@ -2,6 +2,10 @@
 
 Did you forget to run pv on a long running command? iforgotpv to the rescue!
 
+
+[![Play Demo](https://img.youtube.com/vi/Q0Jn6tYQbCU/0.jpg)](https://www.youtube.com/watch?v=Q0Jn6tYQbCU)
+https://youtu.be/Q0Jn6tYQbCU
+
 ## Description
 
 `iforgotpv` is a bash script that allows you to monitor the progress of a running process that's reading from or writing to a file. It's particularly useful when you've started a long-running command and wish you had used \`pv\` (Pipe Viewer) to monitor its progress.
