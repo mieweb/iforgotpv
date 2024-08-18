@@ -4,11 +4,14 @@ Did you forget to run pv on a long running command? iforgotpv to the rescue!
 
 
 [![Play Demo](https://img.youtube.com/vi/Q0Jn6tYQbCU/0.jpg)](https://www.youtube.com/watch?v=Q0Jn6tYQbCU)
+
 https://youtu.be/Q0Jn6tYQbCU
 
 ## Description
 
 `iforgotpv` is a bash script that allows you to monitor the progress of a running process that's reading from or writing to a file. It's particularly useful when you've started a long-running command and wish you had used \`pv\` (Pipe Viewer) to monitor its progress.
+
+`iforgotpv` is similar to [progress](https://github.com/Xfennec/progress) but is implemented as a bash script instead of C.
 
 ## Features
 
@@ -18,6 +21,14 @@ https://youtu.be/Q0Jn6tYQbCU
 - Easy to use with minimal setup
 
 ## Installation
+
+### Run from net (if you dare)
+
+```bash
+curl https://raw.githubusercontent.com/mieweb/iforgotpv/main/iforgotpv > iforgotpv
+chmod a+x iforgotpv
+./iforgotpv
+```
 
 ### For Debian-based systems (using apt):
 
